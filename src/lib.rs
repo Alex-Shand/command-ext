@@ -16,6 +16,7 @@
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::let_underscore_untyped)]
 #![allow(clippy::similar_names)]
+#![allow(clippy::result_large_err)]
 
 use std::{
     collections::{HashMap, HashSet},
@@ -25,15 +26,24 @@ use std::{
     process::{Command, ExitStatus},
 };
 
-use anyhow::{Context as _, Error, Result, anyhow};
+use camino::Utf8Path;
+use errors::prelude::*;
+
+use self::error::{
+    CheckOutputError, CheckStatusError, ExecutionCtx, ExecutionError,
+    NonUtf8OutputCtx, StatusCtx,
+};
+
+mod error;
 
 /// Extra methods for Command
 #[allow(clippy::missing_errors_doc)]
 #[allow(missing_docs)]
+#[sealed::sealed]
 pub trait CommandExt {
-    fn check(&mut self) -> Result<ExitStatus>;
-    fn check_status(&mut self) -> Result<()>;
-    fn check_output(&mut self) -> Result<String>;
+    fn check(&mut self) -> Result<ExitStatus, ExecutionError>;
+    fn check_status(&mut self) -> Result<(), CheckStatusError>;
+    fn check_output(&mut self) -> Result<String, CheckOutputError>;
 
     #[must_use]
     fn run_as_root(&mut self) -> Self;
@@ -45,30 +55,40 @@ pub trait CommandExt {
         key_file: impl AsRef<Path>,
     ) -> Self;
     #[must_use]
-    fn redirect(&mut self, path: impl AsRef<Path>) -> Self;
+    fn redirect(&mut self, path: impl AsRef<Utf8Path>) -> Self;
 }
 
+#[sealed::sealed]
 impl CommandExt for Command {
-    fn check(&mut self) -> Result<ExitStatus> {
-        self.status().with_context(|| failed_to_execute(self))
+    fn check(&mut self) -> Result<ExitStatus, ExecutionError> {
+        self.status().context(ExecutionCtx { exe: &*self })
     }
 
-    fn check_status(&mut self) -> Result<()> {
-        let status = self.status().with_context(|| failed_to_execute(self))?;
+    fn check_status(&mut self) -> Result<(), CheckStatusError> {
+        let status = self.check()?;
         if !status.success() {
-            return Err(unsuccessful_exit(self, status));
+            return StatusCtx {
+                cmd: &*self,
+                status,
+            }
+            .fail()?;
         }
         Ok(())
     }
 
-    fn check_output(&mut self) -> Result<String> {
-        let output = self.output().with_context(|| failed_to_execute(self))?;
+    fn check_output(&mut self) -> Result<String, CheckOutputError> {
+        let output = self.output().context(ExecutionCtx { exe: &*self })?;
         let status = output.status;
         if !status.success() {
             eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-            return Err(unsuccessful_exit(self, status));
+            return StatusCtx {
+                cmd: &*self,
+                status,
+            }
+            .fail()?;
         }
-        String::from_utf8(output.stdout).with_context(|| non_utf8_output(self))
+        Ok(String::from_utf8(output.stdout)
+            .context(NonUtf8OutputCtx { cmd: &*self })?)
     }
 
     fn run_as_root(&mut self) -> Self {
@@ -91,7 +111,7 @@ impl CommandExt for Command {
         ip: Ipv4Addr,
         key_file: impl AsRef<Path>,
     ) -> Self {
-        let cmd = convert_to_commandline(self);
+        let cmd = convert_to_commandline(self, "run_on_remote");
         let mut new = Command::new("ssh");
         let _ = new
             .arg("-i")
@@ -101,47 +121,16 @@ impl CommandExt for Command {
         new
     }
 
-    #[allow(clippy::similar_names)]
-    fn redirect(&mut self, path: impl AsRef<Path>) -> Self {
-        let cmd = convert_to_commandline(self);
-        let cmd = format!(
-            "{cmd} >{}",
-            shellwords::escape(
-                path.as_ref().as_os_str().to_str().expect("Non-utf8 path")
-            )
-        );
+    fn redirect(&mut self, path: impl AsRef<Utf8Path>) -> Self {
+        let cmd = convert_to_commandline(self, "redirect");
+        let cmd =
+            format!("{cmd} >{}", shellwords::escape(path.as_ref().as_str()));
         let mut new = Command::new("bash");
         let _ = new.arg("-c").arg(cmd);
         new
     }
 }
 
-fn failed_to_execute(cmd: &mut Command) -> String {
-    let exe = cmd.get_program().to_string_lossy();
-    format!("Failed to execute `{exe}`")
-}
-
-fn unsuccessful_exit(cmd: &mut Command, status: ExitStatus) -> Error {
-    let exe = cmd.get_program().to_string_lossy();
-    let args = cmd
-        .get_args()
-        .map(|a| a.to_string_lossy())
-        .collect::<Vec<_>>()
-        .join(" ");
-    anyhow!("Command `{exe} {args}` exited unsuccessfully ({status})")
-}
-
-fn non_utf8_output(cmd: &mut Command) -> String {
-    let exe = cmd.get_program().to_string_lossy();
-    let args = cmd
-        .get_args()
-        .map(|a| a.to_string_lossy())
-        .collect::<Vec<_>>()
-        .join(" ");
-    format!("Command `{exe} {args}` returned non-utf8 output")
-}
-
-#[allow(clippy::similar_names)]
 fn decompose_command(
     cmd: &Command,
 ) -> (
@@ -167,18 +156,14 @@ fn decompose_command(
     (exe, args, cwd, env_set, env_del)
 }
 
-#[allow(clippy::similar_names)]
-fn convert_to_commandline(cmd: &Command) -> String {
+fn convert_to_commandline(cmd: &Command, purpose: &'static str) -> String {
+    let err =
+        || panic!("{purpose} requires all parts of the command be valid utf8");
     let (exe, args, cwd, env_set, env_del) = decompose_command(cmd);
-    let exe = shellwords::escape(
-        exe.to_str()
-            .expect("Can't send non-utf8 commands across ssh"),
-    );
+    let exe = shellwords::escape(exe.to_str().unwrap_or_else(err));
     let args = shellwords::join(
         &args
-            .map(|a| {
-                a.to_str().expect("Can't send non-utf8 commands across ssh")
-            })
+            .map(|a| a.to_str().unwrap_or_else(err))
             .collect::<Vec<_>>(),
     );
     let env_set = env_set
@@ -186,35 +171,21 @@ fn convert_to_commandline(cmd: &Command) -> String {
         .map(|(k, v)| {
             format!(
                 "export {}={};",
-                k.to_str()
-                    .expect("Can't send non-utf8 environment across ssh"),
-                shellwords::escape(
-                    v.to_str()
-                        .expect("Can't send non-utf8 environment across ssh")
-                )
+                k.to_str().unwrap_or_else(err),
+                shellwords::escape(v.to_str().unwrap_or_else(err))
             )
         })
         .collect::<Vec<_>>()
         .join(" ");
     let env_del = env_del
         .into_iter()
-        .map(|e| {
-            format!(
-                "unset {};",
-                e.to_str()
-                    .expect("Can't send non-utf8 environment across ssh")
-            )
-        })
+        .map(|e| format!("unset {};", e.to_str().unwrap_or_else(err)))
         .collect::<Vec<_>>()
         .join(" ");
     let cwd = if let Some(cwd) = cwd {
         format!(
             "cd {};",
-            shellwords::escape(
-                cwd.as_os_str()
-                    .to_str()
-                    .expect("Can't send non-utf8 environment across ssh")
-            )
+            shellwords::escape(cwd.as_os_str().to_str().unwrap_or_else(err))
         )
     } else {
         String::new()

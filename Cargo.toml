@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.95"
+camino = "1.1.9"
+errors = { version = "0.1.0", path = "../errors" }
+sealed = "0.6.0"
 shellwords = "1.1.0"

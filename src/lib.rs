@@ -60,10 +60,12 @@ pub trait CommandExt {
 
 #[sealed::sealed]
 impl CommandExt for Command {
+    #[track_caller]
     fn check(&mut self) -> Result<ExitStatus, ExecutionError> {
         self.status().context(ExecutionCtx { exe: &*self })
     }
 
+    #[track_caller]
     fn check_status(&mut self) -> Result<(), CheckStatusError> {
         let status = self.check()?;
         if !status.success() {
@@ -76,6 +78,7 @@ impl CommandExt for Command {
         Ok(())
     }
 
+    #[track_caller]
     fn check_output(&mut self) -> Result<String, CheckOutputError> {
         let output = self.output().context(ExecutionCtx { exe: &*self })?;
         let status = output.status;

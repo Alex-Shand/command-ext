@@ -1,7 +1,6 @@
 //! Extra methods for Command
 #![warn(elided_lifetimes_in_paths)]
 #![warn(missing_docs)]
-#![warn(noop_method_call)]
 #![warn(unreachable_pub)]
 #![warn(unused_crate_dependencies)]
 #![warn(unused_import_braces)]
@@ -17,16 +16,19 @@
 #![allow(clippy::let_underscore_untyped)]
 #![allow(clippy::similar_names)]
 #![allow(clippy::result_large_err)]
+#![allow(clippy::missing_errors_doc)]
 
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet},
     ffi::OsStr,
     net::Ipv4Addr,
     path::Path,
-    process::{Command, ExitStatus},
+    process::{Command, ExitStatus, Output as StdOutput},
 };
 
 use camino::Utf8Path;
+use error::NonUtf8OutputError;
 use errors::prelude::*;
 
 use self::error::{
@@ -36,6 +38,63 @@ use self::error::{
 
 mod error;
 
+/// Output type returned from [CommandExt::check_full_output]
+#[derive(Debug)]
+pub struct Output<'a> {
+    /// Command exit status
+    pub status: ExitStatus,
+    output: StdOutput,
+    cmd: &'a Command,
+}
+
+impl<'a> Output<'a> {
+    fn new(cmd: &'a Command, output: StdOutput) -> Self {
+        Self {
+            status: output.status,
+            output,
+            cmd,
+        }
+    }
+}
+
+impl Output<'_> {
+    /// Command stdout, must be utf8
+    pub fn stdout(&self) -> Result<&str, NonUtf8OutputError> {
+        std::str::from_utf8(&self.output.stdout)
+            .context(NonUtf8OutputCtx { cmd: self.cmd })
+    }
+
+    /// Command stdout, lossily converted to string
+    #[must_use]
+    pub fn stdout_lossy(&self) -> Cow<'_, str> {
+        String::from_utf8_lossy(&self.output.stdout)
+    }
+
+    /// Command stdout, raw bytes
+    #[must_use]
+    pub fn stdout_raw(&self) -> &[u8] {
+        &self.output.stdout
+    }
+
+    /// Command stderr, must be utf8
+    pub fn stderr(&self) -> Result<&str, NonUtf8OutputError> {
+        std::str::from_utf8(&self.output.stderr)
+            .context(NonUtf8OutputCtx { cmd: self.cmd })
+    }
+
+    /// Command stderr, lossily converted to string
+    #[must_use]
+    pub fn stderr_lossy(&self) -> Cow<'_, str> {
+        String::from_utf8_lossy(&self.output.stderr)
+    }
+
+    /// Command stderr, raw bytes
+    #[must_use]
+    pub fn stderr_raw(&self) -> &[u8] {
+        &self.output.stderr
+    }
+}
+
 /// Extra methods for Command
 #[allow(clippy::missing_errors_doc)]
 #[allow(missing_docs)]
@@ -44,9 +103,12 @@ pub trait CommandExt {
     fn check(&mut self) -> Result<ExitStatus, ExecutionError>;
     fn check_status(&mut self) -> Result<(), CheckStatusError>;
     fn check_output(&mut self) -> Result<String, CheckOutputError>;
+    fn check_full_output(&mut self) -> Result<Output<'_>, ExecutionError>;
 
     #[must_use]
     fn run_as_root(&mut self) -> Self;
+    #[must_use]
+    fn run_as(&mut self, user: &str) -> Self;
     #[must_use]
     fn run_on_remote(
         &mut self,
@@ -91,13 +153,34 @@ impl CommandExt for Command {
             .fail()?;
         }
         Ok(String::from_utf8(output.stdout)
+            .map_err(|e| e.utf8_error())
             .context(NonUtf8OutputCtx { cmd: &*self })?)
+    }
+
+    #[track_caller]
+    fn check_full_output(&mut self) -> Result<Output<'_>, ExecutionError> {
+        let output = self.output().context(ExecutionCtx { exe: &*self })?;
+        Ok(Output::new(self, output))
     }
 
     fn run_as_root(&mut self) -> Self {
         let (exe, args, cwd, env_set, env_del) = decompose_command(self);
         let mut new = Command::new("sudo");
         let _ = new.arg(exe).args(args);
+        if let Some(cwd) = cwd {
+            let _ = new.current_dir(cwd);
+        }
+        let _ = new.envs(env_set);
+        for e in env_del {
+            let _ = new.env_remove(e);
+        }
+        new
+    }
+
+    fn run_as(&mut self, user: &str) -> Self {
+        let (exe, args, cwd, env_set, env_del) = decompose_command(self);
+        let mut new = Command::new("sudo");
+        let _ = new.args(["-u", user]).arg(exe).args(args);
         if let Some(cwd) = cwd {
             let _ = new.current_dir(cwd);
         }

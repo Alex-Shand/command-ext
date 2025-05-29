@@ -28,7 +28,7 @@ pub struct StatusError {
 pub type CheckStatusError = (ExecutionError, StatusError);
 
 #[errors::error(
-    wrapping = std::string::FromUtf8Error,
+    wrapping = std::str::Utf8Error,
     context = pub(crate),
     display("Command `{cmd}` returned non-utf8 output"),
     backtrace

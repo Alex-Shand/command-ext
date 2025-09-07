@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-camino = "1.1.10"
+camino = "1.1.11"
 errors = { git = "https://github.com/Alex-Shand/errors.git" }
 sealed = "0.6.0"
 shellwords = "1.1.0"

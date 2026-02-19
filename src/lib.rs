@@ -28,13 +28,13 @@ use std::{
 };
 
 use camino::Utf8Path;
-use error::NonUtf8OutputError;
 use errors::prelude::*;
 
-use self::error::{
-    CheckOutputError, CheckStatusError, ExecutionCtx, ExecutionError,
-    NonUtf8OutputCtx, StatusCtx,
+pub use self::error::{
+    CheckOutputError, CheckStatusError, ExecutionError, NonUtf8OutputError,
+    StatusError,
 };
+use self::error::{ExecutionCtx, NonUtf8OutputCtx, StatusCtx};
 
 mod error;
 
@@ -43,6 +43,7 @@ mod error;
 pub struct Output<'a> {
     /// Command exit status
     pub status: ExitStatus,
+    #[allow(clippy::struct_field_names)]
     output: StdOutput,
     cmd: &'a Command,
 }

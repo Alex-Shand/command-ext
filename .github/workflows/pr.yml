@@ -1,0 +1,20 @@
+name: Merge Dependabot PRs
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  
+env:
+    GH_TOKEN: ${{ github.token }}
+
+jobs:
+  pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Pick and Merge PR
+        run: |
+          PR=$(gh pr list --json url,author,statusCheckRollup | jq -r '[.[] | select(.author.login == "app/dependabot") | select(all(.statusCheckRollup[]; .conclusion == "SUCCESS")) | .url][0]')
+          if [[ "$PR" != "null" ]]; then
+            echo "Merging $PR"
+            gh pr merge --rebase $PR
+          fi

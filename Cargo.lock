@@ -45,7 +45,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "errors"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/errors.git#48072764f3c9460e302c44901f81658fec9c9827"
+source = "git+https://github.com/Alex-Shand/errors.git#874ca9b4ed95860978d8395fcac6b7436a9889a2"
 dependencies = [
  "errors-macros",
  "snafu",
@@ -54,7 +54,7 @@ dependencies = [
 [[package]]
 name = "errors-macros"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/errors.git#48072764f3c9460e302c44901f81658fec9c9827"
+source = "git+https://github.com/Alex-Shand/errors.git#874ca9b4ed95860978d8395fcac6b7436a9889a2"
 dependencies = [
  "proc",
 ]

@@ -45,7 +45,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "errors"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/errors.git#b3685e6c4b0db326647f378815b1993f484c0753"
+source = "git+https://github.com/Alex-Shand/errors.git#ebce3572d9e572883a4cf95b462923806c3dabbc"
 dependencies = [
  "errors-macros",
  "snafu",
@@ -54,7 +54,7 @@ dependencies = [
 [[package]]
 name = "errors-macros"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/errors.git#b3685e6c4b0db326647f378815b1993f484c0753"
+source = "git+https://github.com/Alex-Shand/errors.git#ebce3572d9e572883a4cf95b462923806c3dabbc"
 dependencies = [
  "proc",
 ]
@@ -96,7 +96,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 [[package]]
 name = "proc"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/proc.git#b5a3d8175082a493e34c90dcfd1ffe1622ec6297"
+source = "git+https://github.com/Alex-Shand/proc.git#782f5adc63ad6c723c7d80319c350163ed359046"
 dependencies = [
  "proc_attribute",
  "proc_common",
@@ -126,7 +126,7 @@ dependencies = [
 [[package]]
 name = "proc_attribute"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/proc.git#b5a3d8175082a493e34c90dcfd1ffe1622ec6297"
+source = "git+https://github.com/Alex-Shand/proc.git#782f5adc63ad6c723c7d80319c350163ed359046"
 dependencies = [
  "proc_common",
 ]
@@ -134,7 +134,7 @@ dependencies = [
 [[package]]
 name = "proc_common"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/proc.git#b5a3d8175082a493e34c90dcfd1ffe1622ec6297"
+source = "git+https://github.com/Alex-Shand/proc.git#782f5adc63ad6c723c7d80319c350163ed359046"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -146,7 +146,7 @@ dependencies = [
 [[package]]
 name = "proc_derive"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/proc.git#b5a3d8175082a493e34c90dcfd1ffe1622ec6297"
+source = "git+https://github.com/Alex-Shand/proc.git#782f5adc63ad6c723c7d80319c350163ed359046"
 dependencies = [
  "convert_case",
  "proc_attribute",
@@ -156,7 +156,7 @@ dependencies = [
 [[package]]
 name = "proc_function"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/proc.git#b5a3d8175082a493e34c90dcfd1ffe1622ec6297"
+source = "git+https://github.com/Alex-Shand/proc.git#782f5adc63ad6c723c7d80319c350163ed359046"
 dependencies = [
  "proc_attribute",
  "proc_common",
@@ -165,7 +165,7 @@ dependencies = [
 [[package]]
 name = "proc_parse"
 version = "0.1.0"
-source = "git+https://github.com/Alex-Shand/proc.git#b5a3d8175082a493e34c90dcfd1ffe1622ec6297"
+source = "git+https://github.com/Alex-Shand/proc.git#782f5adc63ad6c723c7d80319c350163ed359046"
 dependencies = [
  "proc_common",
  "proc_derive",
@@ -252,18 +252,18 @@ dependencies = [
 
 [[package]]
 name = "snafu"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1d4bced6a69f90b2056c03dcff2c4737f98d6fb9e0853493996e1d253ca29c6"
+checksum = "d1a012328be2e3f5d5f6f3218147ca02588cea4cb865e876849ab6debcf36522"
 dependencies = [
  "snafu-derive",
 ]
 
 [[package]]
 name = "snafu-derive"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54254b8531cafa275c5e096f62d48c81435d1015405a91198ddb11e967301d40"
+checksum = "5f103c50866b8743da9429b8a581d81a27c2d3a9c4ac7df8f8571c1dd7896eda"
 dependencies = [
  "heck",
  "proc-macro2",

@@ -10,7 +10,7 @@ jobs:
   pr:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Pick and Merge PR
         run: |
           PR=$(gh pr list --json url,author,statusCheckRollup | jq -r '[.[] | select(.author.login == "app/dependabot") | select(all(.statusCheckRollup[]; .conclusion == "SUCCESS")) | .url][0]')

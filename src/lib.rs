@@ -114,7 +114,7 @@ pub trait CommandExt {
     fn run_on_remote(
         &mut self,
         user: &str,
-        ip: Ipv4Addr,
+        host: &str,
         key_file: impl AsRef<Path>,
     ) -> Self;
     #[must_use]
@@ -195,7 +195,7 @@ impl CommandExt for Command {
     fn run_on_remote(
         &mut self,
         user: &str,
-        ip: Ipv4Addr,
+        host: &str,
         key_file: impl AsRef<Path>,
     ) -> Self {
         let cmd = convert_to_commandline(self, "run_on_remote");
@@ -203,7 +203,7 @@ impl CommandExt for Command {
         let _ = new
             .arg("-i")
             .arg(key_file.as_ref())
-            .arg(format!("{user}@{ip}"))
+            .arg(format!("{user}@{host}"))
             .arg(cmd);
         new
     }

@@ -6,5 +6,5 @@ edition = "2024"
 [dependencies]
 camino = "1.2.2"
 errors = { git = "https://github.com/Alex-Shand/errors.git" }
-sealed = "0.6.0"
+sealed = "0.7.0"
 shellwords = "1.1.0"

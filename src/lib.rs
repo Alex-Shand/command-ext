@@ -24,7 +24,7 @@ use std::{
     ffi::OsStr,
     net::Ipv4Addr,
     path::Path,
-    process::{Command, ExitStatus, Output as StdOutput},
+    process::{Command, ExitStatus, Output as StdOutput, Stdio},
 };
 
 use camino::Utf8Path;
@@ -143,10 +143,13 @@ impl CommandExt for Command {
 
     #[track_caller]
     fn check_output(&mut self) -> Result<String, CheckOutputError> {
-        let output = self.output().context(ExecutionCtx { exe: &*self })?;
+        let output = self
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .output()
+            .context(ExecutionCtx { exe: &*self })?;
         let status = output.status;
         if !status.success() {
-            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
             return StatusCtx {
                 cmd: &*self,
                 status,
